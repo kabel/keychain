@@ -24,6 +24,56 @@ abstract class AbstractEditController extends AbstractController
     const TEMPLATE_INDEX = 'keychain/_cp/edit';
 
     /**
+     * @param array $variables
+     * @return array
+     */
+    public static function getEditVariables(array $variables)
+    {
+        /** @var ?KeyChainRecord $keypair */
+        $keypair = $variables['keypair'] ?: null;
+        if (!$keypair) {
+            return $variables;
+        }
+
+        if ($keypair->id) {
+            $variables['title'] .= ': Edit';
+            $variables['continueEditingUrl'] = $variables['baseCpPath'] . '/' . $keypair->id;
+
+            $variables['formActions'] = [
+                [
+                    'label' => 'Save and continue editing',
+                    'redirect' => \Craft::$app->getSecurity()->hashData($variables['continueEditingUrl'], null),
+                    'shortcut' => true,
+                ],
+                [
+                    'action' => 'keychain/upsert/change-status',
+                    'label'  => $keypair->enabled ? 'Disable' : 'Enable',
+                ],
+                [
+                    'action' => 'keychain/upsert/delete',
+                    'label'  => 'Delete',
+                    'destructive' => true,
+                ],
+            ];
+
+            $crumb = [
+                'url'   => UrlHelper::cpUrl($variables['continueEditingUrl']),
+                'label' => $variables['keypair']->description ?: '(Untitled)',
+            ];
+        } else {
+            $variables['title'] .= ': Create Bring Your Own Key';
+            $crumb = [
+                'url'   => UrlHelper::cpUrl($variables['baseCpPath'] . '/new'),
+                'label' => 'New',
+            ];
+        }
+
+        $variables['crumbs'][] = $crumb;
+
+        return $variables;
+    }
+
+    /**
      * @param string|null $keypairId
      * @return \yii\web\Response
      */
@@ -32,46 +82,14 @@ abstract class AbstractEditController extends AbstractController
         $variables = $this->getBaseVariables();
 
         if ($keypairId) {
-            $keypair = $variables['keypair'] = KeyChainRecord::find()->where([
+            $variables['keypair'] = KeyChainRecord::find()->where([
                 'id' => $keypairId,
             ])->one();
-            $variables['title'] .= ': Edit';
-
-
-            $variables['actions'] = [
-                [
-                    //action list 1
-                    [
-                        'action' => 'keychain/upsert/change-status',
-                        'label'  => $keypair->enabled ? 'Disable' : 'Enable',
-                    ],
-                    [
-                        'action' => 'keychain/upsert/delete',
-                        'label'  => 'Delete',
-                    ],
-                ],
-            ];
-
-            $crumb = [
-                'url'   => UrlHelper::cpUrl(
-                    $variables['baseCpPath'] . '/' . $keypairId
-                ),
-                'label' => $variables['keypair']->description,
-            ];
         } else {
             $variables['keypair'] = new KeyChainRecord();
-            $variables['title'] .= ': Create Bring Your Own Key';
-            $crumb = [
-                'url'   => UrlHelper::cpUrl(
-                    $variables['baseCpPath'] . '/new'
-                ),
-                'label' => 'New',
-            ];
         }
 
-        $variables['crumbs'][] = $crumb;
-
-
+        $variables = self::getEditVariables($variables);
         $variables = $this->beforeRender($variables);
         return $this->renderTemplate(
             static::TEMPLATE_INDEX,
