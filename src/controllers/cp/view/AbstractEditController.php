@@ -9,13 +9,11 @@
 namespace flipbox\keychain\controllers\cp\view;
 
 use Craft;
-use craft\base\Plugin;
 use craft\helpers\UrlHelper;
-use craft\web\Controller;
 use flipbox\keychain\controllers\cp\AbstractController;
-use flipbox\keychain\KeyChain;
 use flipbox\keychain\keypair\traits\OpenSSL;
 use flipbox\keychain\records\KeyChainRecord;
+use yii\web\NotFoundHttpException;
 
 abstract class AbstractEditController extends AbstractController
 {
@@ -122,5 +120,27 @@ abstract class AbstractEditController extends AbstractController
             static::TEMPLATE_INDEX . '/openssl',
             $variables
         );
+    }
+
+    /**
+     * @param $keyId
+     * @return \craft\web\Response|\yii\console\Response
+     * @throws NotFoundHttpException
+     * @throws \yii\web\ForbiddenHttpException
+     * @throws \yii\web\HttpException
+     * @throws \yii\web\RangeNotSatisfiableHttpException
+     */
+    public function actionDownloadCertificate($keyId)
+    {
+        $this->requireAdmin(false);
+
+        /** @var KeyChainRecord $keychain */
+        if (! $keychain = KeyChainRecord::find()->where([
+            'id' => $keyId,
+        ])->one()) {
+            throw new NotFoundHttpException('Key not found');
+        }
+
+        return Craft::$app->response->sendContentAsFile($keychain->getDecryptedCertificate(), 'certificate.crt');
     }
 }

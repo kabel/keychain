@@ -63,7 +63,6 @@
 
     {{ forms.textareaField({
         label: "Key"|t('keychain'),
-        instructions: "Key"|t('keychain'),
         class: "code",
         id: 'key',
         name: 'key',
@@ -73,9 +72,16 @@
         rows: 10
     }) }}
 
+    {% if keypair.id %}
+    {% set headingSuffix %}
+    <div class="flex-grow"></div>
+    <a download class="btn" href="{{ cpUrl(baseCpPath ~ '/download-certificate', {keyId: keypair.id}) }}" data-icon="download">Download</a>
+    {% endset %}
+    {% endif %}
+
     {{ forms.textareaField({
         label: "Certificate"|t('keychain'),
-        instructions: "Certificate"|t('keychain'),
+        headingSuffix: headingSuffix ?? null,
         class: "code",
         id:   'certificate',
         name: 'certificate',
