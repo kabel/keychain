@@ -6,6 +6,8 @@
 [![Latest Version](https://img.shields.io/github/release/flipboxfactory/keychain.svg?style=flat-square)](https://github.com/flipboxfactory/keychain/releases)
 [![Total Downloads](https://img.shields.io/packagist/dt/flipboxfactory/keychain.svg?style=flat-square)](https://packagist.org/packages/flipboxfactory/keychain)
 
+> Craft CMS Support: 3.0 and 4.0
+
 ## Installation
 
 To install, use composer:
