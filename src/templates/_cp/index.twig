@@ -32,7 +32,7 @@
                 {% for keypair in keypairs %}
                     <tr data-id="">
                         <td data-title="description">
-                            <div class="element small hasstatus "
+                            <div class="element small chip chromeless"
                                  data-status="active" data-url="{{ cpUrl('keychain/' ~ keypair.id) }}"
                                  data-level="" data-editable="">
                                 <span class="status {% if keypair.enabled %}active{% else %}inactive{% endif %}"></span>
