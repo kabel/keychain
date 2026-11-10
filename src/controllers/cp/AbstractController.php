@@ -8,10 +8,9 @@
 
 namespace flipbox\keychain\controllers\cp;
 
-use Craft;
+use craft\base\Plugin;
 use craft\helpers\UrlHelper;
 use craft\web\Controller;
-use craft\base\Plugin;
 use flipbox\keychain\KeyChain;
 
 abstract class AbstractController extends Controller
@@ -21,8 +20,8 @@ abstract class AbstractController extends Controller
      */
     protected function getPlugin()
     {
-        $handle = Craft::$app->request->getBodyParam('pluginHandle');
-        if ($handle && $plugin = Craft::$app->getModule($handle)) {
+        $handle = \Craft::$app->request->getBodyParam('pluginHandle');
+        if ($handle && $plugin = \Craft::$app->getModule($handle)) {
             if ($plugin instanceof Plugin) {
                 return $plugin;
             }
@@ -36,24 +35,24 @@ abstract class AbstractController extends Controller
     protected function getBaseVariables()
     {
         $variables = [
-            'pluginHandle'       => $this->getPlugin()->getUniqueId(),
-            'title'              => $this->getPlugin()->name . ' - ' . KeyChain::getInstance()->name,
+            'pluginHandle' => $this->getPlugin()->getUniqueId(),
+            'title' => $this->getPlugin()->name . ' - ' . KeyChain::getInstance()->name,
             // Set the "Continue Editing" URL
             'continueEditingUrl' => $this->getBaseCpPath(),
-            'baseActionPath'     => $this->getBaseActionPath(),
-            'baseCpPath'         => $this->getBaseCpPath(),
-            'actions'            => [],
+            'baseActionPath' => $this->getBaseActionPath(),
+            'baseCpPath' => $this->getBaseCpPath(),
+            'actions' => [],
         ];
 
 
-        if (! ($this->getPlugin() instanceof KeyChain)) {
+        if (!($this->getPlugin() instanceof KeyChain)) {
             $variables['crumbs'][] = [
-                'url'   => UrlHelper::cpUrl($this->getPlugin()->getUniqueId()),
+                'url' => UrlHelper::cpUrl($this->getPlugin()->getUniqueId()),
                 'label' => $this->getPlugin()->name,
             ];
         }
         $variables['crumbs'][] = [
-            'url'   => UrlHelper::cpUrl($variables['baseCpPath']),
+            'url' => UrlHelper::cpUrl($variables['baseCpPath']),
             'label' => 'KeyChain',
         ];
         return $variables;

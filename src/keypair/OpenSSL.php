@@ -43,6 +43,7 @@ class OpenSSL extends Model implements KeyPairInterface
 
     public function create(): KeyChainRecord
     {
+
         // Generate a new private (and public) key pair
         $privkey = openssl_pkey_new([
             "private_key_bits" => $this->keyBits,
@@ -53,16 +54,19 @@ class OpenSSL extends Model implements KeyPairInterface
             throw new \RuntimeException('Unable to generate a new key pair.');
         }
 
-        $dn = array_filter($this->toArray($this->attributes()));
-
         // Generate a certificate signing request
+        // OpenSSL rejects empty DN entries, so leave blank fields out instead of failing
+        $dn = array_filter(
+            $this->toArray($this->attributes()),
+            fn($value) => $value !== null && $value !== ''
+        );
         $csr = openssl_csr_new($dn, $privkey, ['digest_alg' => $this->digestAlgorithm]);
 
         if (!$csr) {
             throw new \RuntimeException('Unable to generate a certificate signing request.');
         }
 
-        // Generate a self-signed cert, valid for 365 days
+        // Generate a self-signed cert
         $x509 = openssl_csr_sign($csr, null, $privkey, $this->daysExpiry, ['digest_alg' => $this->digestAlgorithm]);
 
         if (!$x509) {
@@ -85,9 +89,9 @@ class OpenSSL extends Model implements KeyPairInterface
 
         return new KeyChainRecord([
             'certificate' => $certout,
-            'key'         => $pkeyout,
-            'class'       => self::class,
-            'settings'    => $this->toArray(),
+            'key' => $pkeyout,
+            'class' => self::class,
+            'settings' => $this->toArray(),
             'description' => $this->description,
         ]);
     }

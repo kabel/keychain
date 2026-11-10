@@ -21,12 +21,12 @@ class Byok extends Model implements KeyPairInterface
      */
     public function create(): KeyChainRecord
     {
-
         return new KeyChainRecord([
             'key' => $this->key,
             'certificate' => $this->certificate,
             'description' => $this->description,
-            'settings' => $this->toArray(),
+            // Never copy the key material into settings: that column isn't encrypted.
+            'settings' => $this->toArray(['description']),
             'class' => self::class,
         ]);
     }

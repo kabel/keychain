@@ -8,7 +8,6 @@
 
 namespace flipbox\keychain\controllers\cp\view;
 
-use Craft;
 use craft\helpers\UrlHelper;
 use flipbox\keychain\controllers\cp\AbstractController;
 use flipbox\keychain\keypair\traits\OpenSSL;
@@ -19,7 +18,7 @@ abstract class AbstractEditController extends AbstractController
 {
     use OpenSSL;
 
-    const TEMPLATE_INDEX = 'keychain/_cp/edit';
+    public const TEMPLATE_INDEX = 'keychain/_cp/edit';
 
     /**
      * @param array $variables
@@ -45,23 +44,23 @@ abstract class AbstractEditController extends AbstractController
                 ],
                 [
                     'action' => 'keychain/upsert/change-status',
-                    'label'  => $keypair->enabled ? 'Disable' : 'Enable',
+                    'label' => $keypair->enabled ? 'Disable' : 'Enable',
                 ],
                 [
                     'action' => 'keychain/upsert/delete',
-                    'label'  => 'Delete',
+                    'label' => 'Delete',
                     'destructive' => true,
                 ],
             ];
 
             $crumb = [
-                'url'   => UrlHelper::cpUrl($variables['continueEditingUrl']),
+                'url' => UrlHelper::cpUrl($variables['continueEditingUrl']),
                 'label' => $variables['keypair']->description ?: '(Untitled)',
             ];
         } else {
             $variables['title'] .= ': Create Bring Your Own Key';
             $crumb = [
-                'url'   => UrlHelper::cpUrl($variables['baseCpPath'] . '/new'),
+                'url' => UrlHelper::cpUrl($variables['baseCpPath'] . '/new'),
                 'label' => 'New',
             ];
         }
@@ -110,7 +109,7 @@ abstract class AbstractEditController extends AbstractController
         ]);
         $variables['title'] .= ': Create OpenSSL Key Pair';
         $variables['crumbs'][] = [
-            'url'   => UrlHelper::cpUrl(
+            'url' => UrlHelper::cpUrl(
                 $this->getPlugin()->getUniqueId() . '/openssl'
             ),
             'label' => 'New',
@@ -123,7 +122,7 @@ abstract class AbstractEditController extends AbstractController
     }
 
     /**
-     * @param $keyId
+     * @param string $keyId
      * @return \craft\web\Response|\yii\console\Response
      * @throws NotFoundHttpException
      * @throws \yii\web\ForbiddenHttpException
@@ -135,12 +134,12 @@ abstract class AbstractEditController extends AbstractController
         $this->requireAdmin(false);
 
         /** @var KeyChainRecord $keychain */
-        if (! $keychain = KeyChainRecord::find()->where([
-            'id' => $keyId,
+        if (!$keychain = KeyChainRecord::find()->where([
+            'id' => (int) $keyId,
         ])->one()) {
             throw new NotFoundHttpException('Key not found');
         }
 
-        return Craft::$app->response->sendContentAsFile($keychain->getDecryptedCertificate(), 'certificate.crt');
+        return \Craft::$app->response->sendContentAsFile($keychain->getDecryptedCertificate(), 'certificate.crt');
     }
 }

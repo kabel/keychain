@@ -16,6 +16,7 @@ use flipbox\keychain\KeyChain;
 use flipbox\keychain\keypair\Byok;
 use flipbox\keychain\keypair\OpenSSL;
 use flipbox\keychain\records\KeyChainRecord;
+use yii\web\NotFoundHttpException;
 
 abstract class AbstractUpsertController extends AbstractController
 {
@@ -32,31 +33,21 @@ abstract class AbstractUpsertController extends AbstractController
         $request = Craft::$app->request;
         $id = $request->getBodyParam('identifier');
         if ($id) {
-            /** @var KeyChainRecord $keypair */
-            $keypair = KeyChainRecord::find()->where([
-                'id' => $id,
-            ])->one();
-
-            if ($keypair->isEncrypted) {
-                $keypair->getDecryptedKey();
-            }
+            $keypair = $this->findKeyPair($id);
         } else {
             $keypair = (new Byok([
-                'key'         => $request->getBodyParam('key'),
-                'certificate' => $request->getBodyParam('certificate'),
                 'description' => $request->getBodyParam('description'),
             ]))->create();
         }
 
-        /**
-         * Set is decrypted so we know that the key and cert value is raw.
-         */
-        $keypair->isDecrypted = true;
+        // A blank key keeps the stored one: the edit page doesn't render the private key.
+        $keypair->setSubmittedKeyPair(
+            $request->getBodyParam('key'),
+            $request->getBodyParam('certificate')
+        );
         Craft::configure($keypair, [
-            'key'          => $request->getBodyParam('key'),
-            'certificate'  => $request->getBodyParam('certificate'),
-            'description'  => $request->getBodyParam('description'),
-            'isEncrypted'  => $request->getBodyParam('isEncrypted') ?: false,
+            'description' => $request->getBodyParam('description'),
+            'isEncrypted' => $request->getBodyParam('isEncrypted') ?: false,
             'pluginHandle' => $request->getBodyParam('pluginHandle'),
         ]);
         /**
@@ -83,6 +74,53 @@ abstract class AbstractUpsertController extends AbstractController
     }
 
     /**
+     * Returns a key pair's decrypted private key, for the "Reveal" button on the edit page.
+     *
+     * Admin only, POST + CSRF, JSON, and an elevated session (the user re-enters their password).
+     *
+     * @return \yii\web\Response
+     * @throws \yii\web\BadRequestHttpException
+     * @throws \yii\web\ForbiddenHttpException
+     * @throws NotFoundHttpException
+     */
+    public function actionRevealKey()
+    {
+        $this->requireAdmin(false);
+        $this->requirePostRequest();
+        $this->requireAcceptsJson();
+        $this->requireElevatedSession();
+
+        $keypair = $this->findKeyPair(Craft::$app->getRequest()->getRequiredBodyParam('identifier'));
+
+        $response = $this->asJson([
+            'key' => $keypair->getDecryptedKey(),
+        ]);
+        $response->getHeaders()
+            ->set('Cache-Control', 'no-store, private')
+            ->set('Pragma', 'no-cache');
+
+        return $response;
+    }
+
+    /**
+     * @param int|string $id
+     * @throws NotFoundHttpException
+     */
+    protected function findKeyPair($id): KeyChainRecord
+    {
+        /** @var KeyChainRecord|null $keypair */
+        $keypair = KeyChainRecord::find()->where([
+            'id' => $id,
+        ])->one();
+
+        if (!$keypair) {
+            throw new NotFoundHttpException('Key pair not found.');
+        }
+
+        return $keypair;
+    }
+
+    /**
      * @return \yii\web\Response
      * @throws \yii\web\BadRequestHttpException
      */
@@ -96,20 +134,20 @@ abstract class AbstractUpsertController extends AbstractController
 
         try {
             $keychainRecord = (new OpenSSL([
-                'daysExpiry'             => (int)$request->getBodyParam('daysExpiry', 365),
-                'description'            => $request->getBodyParam('description'),
-                'countryName'            => $request->getBodyParam('countryName'),
-                'stateOrProvinceName'    => $request->getBodyParam('stateOrProvinceName'),
-                'localityName'           => $request->getBodyParam('localityName'),
-                'organizationName'       => $request->getBodyParam('organizationName'),
+                'daysExpiry' => (int)$request->getBodyParam('daysExpiry', 365),
+                'description' => $request->getBodyParam('description'),
+                'countryName' => $request->getBodyParam('countryName'),
+                'stateOrProvinceName' => $request->getBodyParam('stateOrProvinceName'),
+                'localityName' => $request->getBodyParam('localityName'),
+                'organizationName' => $request->getBodyParam('organizationName'),
                 'organizationalUnitName' => $request->getBodyParam('organizationalUnitName'),
-                'commonName'             => $request->getBodyParam('commonName'),
-                'emailAddress'           => $request->getBodyParam('emailAddress'),
+                'commonName' => $request->getBodyParam('commonName'),
+                'emailAddress' => $request->getBodyParam('emailAddress'),
             ]))->create();
 
             Craft::configure($keychainRecord, [
-                'enabled'      => $request->getBodyParam('enabled') ?: false,
-                'isEncrypted'  => $request->getBodyParam('isEncrypted') ?: false,
+                'enabled' => $request->getBodyParam('enabled') ?: false,
+                'isEncrypted' => $request->getBodyParam('isEncrypted') ?: false,
                 'pluginHandle' => $request->getBodyParam('plugin'),
             ]);
             $keychainRecord->isDecrypted = true;
@@ -143,7 +181,7 @@ abstract class AbstractUpsertController extends AbstractController
         /** @var KeyChainRecord $keyPair */
         $keyPair = KeyChain::getInstance()->getService()->generateOpenssl($config);
 
-        if (! $keyPair->hasErrors()) {
+        if (!$keyPair->hasErrors()) {
             return $this->asSuccess(Craft::t('keychain', 'Key pair created!'), $keyPair->toArray());
         }
 
@@ -165,7 +203,7 @@ abstract class AbstractUpsertController extends AbstractController
             'id' => $keypairId,
         ])->one();
 
-        $keychainRecord->enabled = ! $keychainRecord->enabled;
+        $keychainRecord->enabled = !$keychainRecord->enabled;
 
         if (!KeyChain::getInstance()->getService()->save($keychainRecord)) {
             return $this->asFailure(Craft::t('keychain', 'Key pair didn\'t save.'));

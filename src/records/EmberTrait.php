@@ -1,5 +1,6 @@
 <?php
 
+
 namespace flipbox\keychain\records;
 
 use yii\base\Model;
@@ -11,7 +12,6 @@ use yii\base\Model;
  */
 trait EmberTrait
 {
-
     /**
      * {@inheritdoc}
      */
@@ -36,13 +36,13 @@ trait EmberTrait
         return [
             [
                 [
-                    'enabled'
+                    'enabled',
                 ],
                 'safe',
                 'on' => [
-                    Model::SCENARIO_DEFAULT
-                ]
-            ]
+                    Model::SCENARIO_DEFAULT,
+                ],
+            ],
         ];
     }
 
